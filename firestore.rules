@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Public visitors can only read published listings. All writes require
+    // a verified admin custom claim. Do not replace this with allow write: if true.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    match /properties/{propertyId} {
+      allow read: if (resource.data.status == 'published') || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+    match /projects/{projectId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+    // No public lead database is enabled in this starter.
+    match /enquiries/{enquiryId} {
+      allow read, write: if isAdmin();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
