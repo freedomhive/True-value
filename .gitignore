@@ -1,8 +1,0 @@
-# Local-only credentials and editor files
-.env
-.env.*
-*.pem
-service-account*.json
-firebase-adminsdk*.json
-.DS_Store
-.vscode/

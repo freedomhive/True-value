@@ -1,1 +1,0 @@
-Place your actual logo file here and name it logo.png. The HTML already references this path. No logo image was supplied in this turn, so none has been fabricated.

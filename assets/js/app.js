@@ -1,25 +1,141 @@
-import { getFirebase, firebaseConfigured } from "./firebase.js";
-import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+(function () {
+  const tv = window.TrueValue;
+  const $ = (s, root = document) => root.querySelector(s);
+  const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+  const state = { properties: [], activeFilter: "All" };
 
-// Official business contact number supplied by the owner.
-window.TV_REALTY_PHONE = "8275872736";
-window.TV_REALTY_WHATSAPP = "918275872736";
-// WhatsApp number is intentionally not assumed; set it after confirmation.
-const $ = (s,root=document)=>root.querySelector(s);
-const $$ = (s,root=document)=>[...root.querySelectorAll(s)];
-$("#year") && ($("#year").textContent = new Date().getFullYear());
-const toggle=$(".menu-toggle"), nav=$(".main-nav");
-toggle?.addEventListener("click",()=>{const open=nav.classList.toggle("open");toggle.setAttribute("aria-expanded",String(open));});
-$$(".main-nav a").forEach(a=>a.addEventListener("click",()=>{nav?.classList.remove("open");toggle?.setAttribute("aria-expanded","false");}));
-let allProperties=[], activeFilter="All";
-const formatPrice=p=>{const n=Number(p);if(!Number.isFinite(n)||n<0)return "Price on request";if(n>=10000000)return "₹"+(n/10000000).toLocaleString("en-IN",{maximumFractionDigits:2})+" Cr";if(n>=100000)return "₹"+(n/100000).toLocaleString("en-IN",{maximumFractionDigits:2})+" L";return "₹"+n.toLocaleString("en-IN");};
-function safe(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function card(p){const image=Array.isArray(p.images)?p.images[0]:"";return `<article class="property-card"><a href="property.html?id=${encodeURIComponent(p.id)}" aria-label="View ${safe(p.title)}"><div class="property-photo">${image?`<img src="${safe(image)}" alt="${safe(p.title)}" loading="lazy" onerror="this.style.display='none'">`:""}<span class="property-badge">${safe(p.category||"Property")} · ${safe(p.listingType||"Sale")}</span></div></a><div class="property-info"><h3>${safe(p.title)}</h3><p class="property-location">⌖ ${safe(p.location)}</p><div class="property-meta"><span class="property-price">${formatPrice(p.price)}<small>${safe(p.ownershipType==="Third-party"?"Authorised third-party listing":"Listed by True Value Realty")}</small></span><a class="property-arrow" href="property.html?id=${encodeURIComponent(p.id)}" aria-label="Property details">↗</a></div></div></article>`;}
-function render(){const grid=$("#property-grid");if(!grid)return;const term=($("#property-search")?.value||"").trim().toLowerCase();const items=allProperties.filter(p=>(activeFilter==="All"||p.category===activeFilter)&&(`${p.title||""} ${p.location||""} ${p.description||""}`).toLowerCase().includes(term));grid.innerHTML=items.length?items.map(card).join(""):`<div class="empty-state"><span class="empty-icon">⌂</span><h3>${allProperties.length?"No matching properties.":"Our listings are being prepared."}</h3><p>${allProperties.length?"Try a different search or category.":"We're adding verified properties. Contact us to discuss your requirements."}</p><a class="button button-outline" href="index.html#contact">Enquire about a property</a></div>`;}
-function setupFilters(){$$(".filter-pill").forEach(b=>b.addEventListener("click",()=>{$$(".filter-pill").forEach(x=>x.classList.toggle("active",x.dataset.filter===b.dataset.filter));activeFilter=b.dataset.filter||"All";render();}));$("#property-search")?.addEventListener("input",render);$$(".category-strip [data-category]").forEach(a=>a.addEventListener("click",()=>{activeFilter=a.dataset.category;$$(".filter-pill").forEach(x=>x.classList.toggle("active",x.dataset.filter===activeFilter));}));}
-async function loadProperties(){const grid=$("#property-grid");if(!grid)return;if(!firebaseConfigured){grid.innerHTML=`<div class="empty-state"><span class="empty-icon">⌂</span><h3>Your property catalogue is ready for setup.</h3><p>Published listings will appear here after Firebase is configured and real properties are added through the admin panel.</p><a class="button button-outline" href="index.html#contact">Contact True Value Realty</a></div>`;return;}try{const {db}=getFirebase();const q=query(collection(db,"properties"),where("status","==","published"));const snap=await getDocs(q);allProperties=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{const av=a.updatedAt?.seconds||0,bv=b.updatedAt?.seconds||0;return bv-av;});render();}catch(e){console.error("True Value Realty listings load failed:",e);const reason=e?.code==="permission-denied"?"Firestore rules are blocking public reads. Confirm the published-listing read rule is deployed in the clad-whale project.":e?.code==="failed-precondition"?"Firestore needs an index or database setup. Check the Firebase console error.":e?.message||"Unknown Firebase error";grid.innerHTML=`<div class="empty-state"><h3>Listings are temporarily unavailable.</h3><p>${safe(reason)}</p><p class="listing-note">Technical code: ${safe(e?.code||"unknown")}</p></div>`;}}
-const leadForm=$("#lead-form");leadForm?.addEventListener("submit",e=>{e.preventDefault();const data=new FormData(leadForm);const name=String(data.get("name")||"").trim(),phone=String(data.get("phone")||"").trim(),category=String(data.get("category")||"Any property"),area=String(data.get("area")||"").trim();const configuredNumber=window.TV_REALTY_WHATSAPP||"";const msg=`Hello True Value Realty, I would like a callback.%0AName: ${encodeURIComponent(name)}%0APhone: ${encodeURIComponent(phone)}%0AInterested in: ${encodeURIComponent(category)}%0APreferred area: ${encodeURIComponent(area||"Not specified")}`;const status=$("#form-message");if(!configuredNumber){status.textContent="WhatsApp is not configured yet. Please add the official number in assets/js/app.js before launch.";return;}window.open(`https://wa.me/${configuredNumber.replace(/\D/g,"")}?text=${msg}`,"_blank","noopener,noreferrer");status.textContent="WhatsApp opened with your enquiry. Send the message to complete your request.";});
-const contactPhone=window.TV_REALTY_PHONE||"",contactWA=window.TV_REALTY_WHATSAPP||"";
-if(contactPhone){const el=$("#contact-call");el.href=`tel:${contactPhone}`;el.classList.remove("disabled");el.removeAttribute("aria-disabled");el.querySelector("strong").textContent=contactPhone;}
-if(contactWA){const el=$("#contact-whatsapp");el.href=`https://wa.me/${contactWA.replace(/\D/g,"")}`;el.classList.remove("disabled");el.removeAttribute("aria-disabled");el.querySelector("strong").textContent="Chat with our team";}
-setupFilters();loadProperties();
+  window.TV_REALTY_PHONE = "8275872736";
+  window.TV_REALTY_WHATSAPP = "918275872736";
+
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function priceText(property) {
+    if (property.price_display === "request" || property.price === null || property.price === undefined || property.price === "") return "Price on request";
+    const n = Number(property.price);
+    if (!Number.isFinite(n)) return "Price on request";
+    if (n >= 10000000) return "₹" + (n / 10000000).toLocaleString("en-IN", { maximumFractionDigits: 2 }) + " Cr";
+    if (n >= 100000) return "₹" + (n / 100000).toLocaleString("en-IN", { maximumFractionDigits: 2 }) + " L";
+    return "₹" + n.toLocaleString("en-IN");
+  }
+
+  function imageUrl(path) {
+    return path && tv.supabase ? tv.publicImageUrl(path) : "";
+  }
+
+  function place(p) {
+    return [p.locality, p.city].filter(Boolean).join(", ") || p.location || "Nashik";
+  }
+
+  function card(p) {
+    const img = imageUrl(p.cover_image_path);
+    const badge = [p.property_type || "Property", p.transaction_type || "Sale"].join(" · ");
+    const meta = [p.carpet_area ? `${p.carpet_area} ${p.area_unit || "sq. ft."}` : "", p.bedrooms ? `${p.bedrooms} bedrooms` : ""].filter(Boolean).join(" · ");
+    return `<article class="property-card"><a href="property.html?id=${encodeURIComponent(p.id)}" aria-label="View ${esc(p.title)}"><div class="property-photo">${img ? `<img src="${esc(img)}" alt="${esc(p.title)}" loading="lazy" onerror="this.style.display='none'">` : ""}<span class="property-badge">${esc(badge)}</span></div></a><div class="property-info"><h3>${esc(p.title)}</h3><p class="property-location">⌖ ${esc(place(p))}</p><div class="property-meta"><span class="property-price">${esc(priceText(p))}<small>${esc(meta || "Published listing")}</small></span><a class="property-arrow" href="property.html?id=${encodeURIComponent(p.id)}" aria-label="Property details">↗</a></div></div></article>`;
+  }
+
+  function currentFilters() {
+    return {
+      term: ($("#property-search")?.value || "").trim().toLowerCase(),
+      transaction: $("#transaction-filter")?.value || "",
+      min: Number($("#min-price")?.value || 0),
+      max: Number($("#max-price")?.value || 0),
+      sort: $("#sort-filter")?.value || "newest"
+    };
+  }
+
+  function render() {
+    const grid = $("#property-grid");
+    if (!grid) return;
+    const filters = currentFilters();
+    let items = state.properties.filter((p) => {
+      const searchable = [p.title, p.location, p.locality, p.city, p.description, p.property_type].join(" ").toLowerCase();
+      const price = Number(p.price || 0);
+      return (state.activeFilter === "All" || p.property_type === state.activeFilter)
+        && (!filters.term || searchable.includes(filters.term))
+        && (!filters.transaction || p.transaction_type === filters.transaction)
+        && (!filters.min || price >= filters.min)
+        && (!filters.max || price <= filters.max);
+    });
+    if (filters.sort === "price_asc") items = items.sort((a, b) => Number(a.price || Infinity) - Number(b.price || Infinity));
+    else if (filters.sort === "price_desc") items = items.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+    else items = items.sort((a, b) => new Date(b.created_at || b.updated_at) - new Date(a.created_at || a.updated_at));
+    grid.innerHTML = items.length ? items.map(card).join("") : `<div class="empty-state"><span class="empty-icon">⌂</span><h3>${state.properties.length ? "No matching properties." : "Our listings are being prepared."}</h3><p>${state.properties.length ? "Try a different search or category." : "Published listings will appear here after Supabase is configured and properties are added through the admin panel."}</p><a class="button button-outline" href="index.html#contact">Enquire about a property</a></div>`;
+  }
+
+  function setupFilters() {
+    $$(".filter-pill").forEach((button) => button.addEventListener("click", () => {
+      $$(".filter-pill").forEach((x) => x.classList.toggle("active", x.dataset.filter === button.dataset.filter));
+      state.activeFilter = button.dataset.filter || "All";
+      render();
+    }));
+    ["#property-search", "#transaction-filter", "#min-price", "#max-price", "#sort-filter"].forEach((selector) => $(selector)?.addEventListener("input", render));
+    $("#clear-filters")?.addEventListener("click", () => {
+      ["#property-search", "#transaction-filter", "#min-price", "#max-price", "#sort-filter"].forEach((selector) => { const el = $(selector); if (el) el.value = selector === "#sort-filter" ? "newest" : ""; });
+      state.activeFilter = "All";
+      $$(".filter-pill").forEach((x) => x.classList.toggle("active", x.dataset.filter === "All"));
+      render();
+    });
+    $$(".category-strip [data-category]").forEach((a) => a.addEventListener("click", () => {
+      state.activeFilter = a.dataset.category || "All";
+      $$(".filter-pill").forEach((x) => x.classList.toggle("active", x.dataset.filter === state.activeFilter));
+      render();
+    }));
+  }
+
+  async function loadProperties() {
+    const grid = $("#property-grid");
+    if (!grid) return;
+    if (!tv.isConfigured) {
+      tv.showConfigError(grid);
+      return;
+    }
+    try {
+      const { data, error } = await tv.supabase
+        .from("properties")
+        .select("id,title,description,property_type,transaction_type,price,price_display,location,locality,city,carpet_area,area_unit,bedrooms,cover_image_path,created_at,updated_at")
+        .eq("status", "published")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      state.properties = data || [];
+      render();
+    } catch (error) {
+      grid.innerHTML = `<div class="empty-state"><h3>Listings are temporarily unavailable.</h3><p>${esc(error.message || "Unable to load published properties.")}</p></div>`;
+    }
+  }
+
+  function setupChrome() {
+    $("#year") && ($("#year").textContent = new Date().getFullYear());
+    const toggle = $(".menu-toggle"), nav = $(".main-nav");
+    toggle?.addEventListener("click", () => {
+      const open = nav.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", String(open));
+    });
+    $$(".main-nav a").forEach((a) => a.addEventListener("click", () => {
+      nav?.classList.remove("open");
+      toggle?.setAttribute("aria-expanded", "false");
+    }));
+  }
+
+  function setupLeadForm() {
+    const leadForm = $("#lead-form");
+    leadForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(leadForm);
+      const name = String(data.get("name") || "").trim();
+      const phone = String(data.get("phone") || "").trim();
+      const category = String(data.get("category") || "Any property");
+      const area = String(data.get("area") || "").trim();
+      const msg = `Hello True Value Realty, I would like a callback.\nName: ${name}\nPhone: ${phone}\nInterested in: ${category}\nPreferred area: ${area || "Not specified"}`;
+      window.open(tv.whatsAppLink(msg), "_blank", "noopener,noreferrer");
+      const status = $("#form-message");
+      if (status) status.textContent = "WhatsApp opened with your enquiry. Send the message to complete your request.";
+    });
+  }
+
+  setupChrome();
+  setupFilters();
+  setupLeadForm();
+  loadProperties();
+})();
