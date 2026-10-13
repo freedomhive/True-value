@@ -1,10 +1,5 @@
 /home /index.html 301
-/properties /properties.html 200
-/property /property.html 200
-/about /about.html 200
-/contact /contact.html 200
-/privacy /privacy.html 200
-/privacy-policy /privacy.html 200
-/terms /terms.html 200
+/privacy-policy /privacy.html 301
 /admin /admin/login.html 302
 /admin/dashboard /admin/index.html 302
+
