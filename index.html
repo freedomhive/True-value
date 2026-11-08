@@ -85,10 +85,14 @@
       <form class="lead-form" id="lead-form"><h3>Request a callback</h3><p>Fields marked * are required.</p>
         <label>Full name *<input name="name" required autocomplete="name" placeholder="Your name"></label>
         <label>Phone number *<input name="phone" required inputmode="tel" autocomplete="tel" pattern="[0-9+() -]{7,20}" placeholder="Your contact number"></label>
+        <label>Email<input name="email" type="email" autocomplete="email" placeholder="Optional"></label>
         <label>Interested in<select name="category"><option value="Any property">Any property</option><option>Residential Apartment</option><option>Residential Plot</option><option>Independent House</option><option>Commercial Property</option><option>Agricultural Land</option></select></label>
+        <label>Specific property<select name="property_id" id="enquiry-property"><option value="">No specific property</option></select></label>
         <label>Preferred area<input name="area" placeholder="Area in or around Nashik"></label>
-        <button class="button button-gold full-width" type="submit">Continue on WhatsApp <span>↗</span></button>
-        <small class="form-disclaimer">Your details will be used to respond to this enquiry. This form opens WhatsApp; it does not store submissions on this website.</small>
+        <label>Message<textarea name="message" rows="3" maxlength="2000" placeholder="Share your requirements"></textarea></label>
+        <label class="enquiry-honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+        <button class="button button-gold full-width" type="submit">Send enquiry <span>↗</span></button>
+        <small class="form-disclaimer">Your enquiry is securely sent to True Value Realty. You can also contact us by phone or WhatsApp.</small>
         <p id="form-message" class="form-message" role="status"></p>
       </form>
     </section>
