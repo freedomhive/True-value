@@ -3,3 +3,8 @@ verify_jwt = false
 
 [functions.admin-invite]
 verify_jwt = true
+
+[auth]
+site_url = "https://true-value.pages.dev"
+additional_redirect_urls = ["https://true-value.pages.dev/admin/login.html"]
+enable_signup = false
